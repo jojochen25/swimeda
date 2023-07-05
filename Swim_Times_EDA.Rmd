@@ -1,0 +1,462 @@
+---
+title: "Swim_Times_EDA"
+output: html_document
+date: "2023-03-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+# put years into one column 
+getwd()
+setwd("C:\\Users\\Default\\Desktop\\BruinSportsAnalytics\\")
+df_50 <- read.csv("Olympedia - Mens 50 Free.csv", header = TRUE)
+df_100 <- read.csv("Olympedia - Mens 100 Free.csv", header = TRUE)
+df_200 <- read.csv("Olympedia - Mens 200m  Free .csv", header = TRUE) # ok
+df_200$Event <- 200
+df_400 <- read.csv("Final_Olympedia - Mens 400m  Free .csv", header = TRUE) # fill NA not working?
+df_1500 <- read.csv("Final_Olympedia - Mens 1500m Free.csv", header = TRUE)
+
+
+#df_100 <- read.csv("C:\\Users\\Desktop\\Downloads\\BruinSportsAnalytics\\Olympedia - Mens 100 Free.csv", header = TRUE)
+#df_200 <- read.csv("C:\\Users\\Desktop\\Downloads\\Olympedia - Mens 200m  Free .csv", header = TRUE) # ok
+#df_400 <- read.csv("C:\\Users\\Desktop\\Downloads\\BruinSportsAnalytics\\Olympedia - Mens 400m Free.csv", header = TRUE)
+
+#"C:\Users\Default\Desktop\BruinSportsAnalytics\Olympedia - Mens 50 Free.csv"
+#"C:\Users\Desktop\Downloads\Olympedia - Mens 200m  Free .csv"
+
+df <- rbind(df_50, df_100, df_200, df_400, df_1500)
+df_50_and_100 <- rbind(df_50, df_100)
+df_200_400_1500 <- rbind(df_200, df_400, df_1500)
+
+df_50_and_100[df_50_and_100 == ""] <- NA
+df_200_400_1500[df_200_400_1500 == ""] <- NA
+#tail(df_50_and_100)
+
+
+# library(chron)
+
+split_R1_50 <- strsplit(df_50_and_100$R1, split = " ")
+df_50_and_100$R1 <- as.numeric(sapply(split_R1_50, function(x){
+  x[1]
+})) # select for the first element in each list component using substr OR convert to dataframe?
+
+names(df_50_and_100)[5] <- "R1 (sec)" 
+tail(df_50_and_100)
+
+head(df_200_400_1500$R1)
+split_R1_200 <- strsplit(df_200_400_1500$R1, split = "[: ]")
+head(split_R1_200)
+df_200_400_1500$R1 <- sapply(split_R1_200, function(x){ # character valus
+  as.numeric(x[2]) / 60 + as.numeric(x[1]) # ; have to make sure everything is numeric
+}) # select for the first element in each list component using substr OR convert to dataframe?
+
+names(df_200_400_1500)[5] <- "R1 (min)" 
+
+df_200_400_1500$RT <- as.numeric(df_200_400_1500$RT)
+tail(df_200_400_1500)
+
+# Make sure Event column is a category or factor variable
+df_200_400_1500$Event <- factor(df_200_400_1500$Event)
+
+#df_200_400_1500 <- df_200_400_1500[complete.cases(df_200_400_1500[, c("R1 (min)", "RT", "Age", "Height", "Weight")]), ]
+# df_200_400_1500[df_200_400_1500$`R1 (min)`!= NA | df_200_400_1500$RT != NA,]
+#install.packages('tidyr')
+
+library("tidyr")
+
+# remove rows that have at least one NA
+df_200_400_1500 <- df_200_400_1500 %>% drop_na() 
+tail(df_200_400_1500) #360
+
+df_50_and_100 <- df_50_and_100 %>% drop_na()
+tail(df_50_and_100) #385
+
+# hey so i noticed that some obs has NA for one of the factors (RT, Age, Height, Weight). theres some that has RT missing only and age, height, weight are intact (100 out 416 rows). ..can I keep those rows or will that skew the line plot?
+
+# follow up with what if there's obs that has missing height and weight. 
+
+# interviews
+
+
+#tail(df_50_and_100) #420 observations
+
+# exporting dataframe to csv
+write.csv(df_200_and_400,"C:\\Users\\Default\\Desktop\\BruinSportsAnalytics\\200_400_df.csv", row.names=FALSE)
+write.csv(df_50_and_100, "C:\\Users\\Default\\Desktop\\BruinSportsAnalytics\\50_100_df.csv", row.names=FALSE)
+
+# 48.64 = 48.64 seconds
+#tidyverse filter, select, arrange, group_by, summarize, court
+
+```
+```{r}
+# compute the bmi for each metric, but wouldn't they all be around the same since they are athletes?
+# compute the average bmi of all athletes and use that as comparison
+# sapply to find average height and weight
+
+
+tail(df_200_400_1500)
+summary(df_200_400_1500)
+
+
+```
+
+```{r}
+# DON'T INCLUDE IN ARTICLE
+# color points by events
+# make a bar graph, but have to split up age into intervals
+df_list <- split(df_200_400_1500, df_200_400_1500$Event)
+df_list$`200`
+
+par(mfrow = c(2, 3))
+
+hist(df_list$`200`$Age, prob = TRUE)
+lines(density(df_list$`200`$Age), lwd = 2, col = "blue")
+
+hist(df_list$`200`$Height, prob = TRUE)
+lines(density(df_list$`200`$Height), lwd = 2, col = "blue")
+
+hist(df_list$`200`$Weight, prob = TRUE)
+lines(density(df_list$`200`$Weight), lwd = 2, col = "blue")
+
+hist(df_list$`200`$RT, prob = TRUE)
+lines(density(df_list$`200`$RT), lwd = 2, col = "blue")
+
+hist(df_list$`200`$bmi, prob = TRUE)
+lines(density(df_list$`200`$bmi), lwd = 2, col = "blue")
+
+# Conclusion: use spearman's just to be safe since it works for linear correlation
+```
+```{r}
+# DON'T INCLUDE IN ARTICLE
+# color points by events
+# make a bar graph, but have to split up age into intervals
+
+par(mfrow = c(2, 3))
+
+hist(df_list$`1500`$Age, prob = TRUE)
+lines(density(df_list$`1500`$Age), lwd = 2, col = "blue")
+
+hist(df_list$`1500`$Height, prob = TRUE)
+lines(density(df_list$`1500`$Height), lwd = 2, col = "blue")
+
+hist(df_list$`1500`$Weight, prob = TRUE)
+lines(density(df_list$`1500`$Weight), lwd = 2, col = "blue")
+
+hist(df_list$`1500`$RT, prob = TRUE)
+lines(density(df_list$`1500`$RT), lwd = 2, col = "blue")
+
+hist(df_list$`1500`$bmi, prob = TRUE)
+lines(density(df_list$`1500`$bmi), lwd = 2, col = "blue")
+
+# Conclusion: use spearman's just to be safe since it works for linear correlation
+```
+
+
+```{r}
+# distribution of age is not normal and scatterplot is not showing linear relationship, and treating age as categorical so don't use pearson's or try to fit a linear regression model
+model_200 <- lm(`R1 (min)`~Age, data = df_list$`200`)
+correlation <- cor(df_list$`200`$Age, df_list$`200`$`R1 (min)`, method = "spearman")
+correlation
+
+# pearson's correlation can only be used for normal distribution
+# treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+plot(`R1 (min)`~Age, data = df_list$`200`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", main = "200 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_list$`200`$Age, df_list$`200`$`R1 (min)`, col="red")) #
+
+model_1500 <- lm(`R1 (min)`~Age, data = df_list$`1500`)
+correlation2 <- cor(df_list$`1500`$Age, df_list$`1500`$`R1 (min)`, method = "spearman")
+correlation2
+
+# pearson's correlation can only be used for normal distribution
+# treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+plot(`R1 (min)`~Age, data = df_list$`1500`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", main = "1500 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation2, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_list$`1500`$Age, df_list$`1500`$`R1 (min)`, col="red")) #
+
+
+```
+
+
+
+```{r, eval = FALSE}
+#REMOVE THIS PART
+# make a bar graph or cluster plot
+# make sure that each age range contains roughly the same number of observations
+# bar graph only shows the average 
+
+num_ranges <- 3
+cut_points <- quantile(df_list$`200`$Age, probs = seq(0, 1, length.out = num_ranges + 1), na.rm = TRUE)
+age_ranges <- cut(df_list$`200`$Age, breaks = cut_points, include.lowest = TRUE)
+ranges <- levels(age_ranges)
+
+df_list$`200`$Age_Range <- age_ranges # store to a new column called Age Range
+tail(df_list$`200`)
+
+# ranges: [16,21] (21,24] (24,32]
+
+# make a side by side box plot but doesnt make sense to find median since time is diff --> bar plot, find the mean
+# to show the mean of each category
+install.packages("ggplot2")
+library(ggplot2)
+print(tapply(df_list$`200`$`R1 (min)`, df_list$`200`$Age_Range, mean))
+
+ggplot(df_list$`200`, aes(x = df_list$`200`$Age_Range, y = df_list$`200`$`R1 (min)`)) + 
+  stat_summary(fun = mean, geom = "bar", color = "black") +
+  ggtitle("200 m Freestyle") +
+  xlab("Age Ranges") +
+  ylab("Average Time (min)") +
+  scale_x_discrete(labels = c("16-21", "21-24", "24-32")) 
+  
+# mean R1 time for each age range
+
+# rearrange the df by age ranges
+
+```
+
+
+
+```{r}
+# when to use mean vs median: mean for normal distribution and no outliers
+
+
+num_ranges <- 3
+cut_points <- quantile(df_list$`200`$Age, probs = seq(0, 1, length.out = num_ranges + 1), na.rm = TRUE)
+age_ranges <- cut(df_list$`200`$Age, breaks = cut_points, include.lowest = TRUE)
+ranges <- levels(age_ranges)
+ranges
+
+df_list$`200`$Age_Range <- age_ranges # store to a new column called Age Range
+tail(df_list$`200`)
+
+ggplot(df_list$`200`, aes(x=df_list$`200`$Age_Range, y = df_list$`200`$`R1 (min)`)) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean, geom = "point", shape = 18, size = 2.5, color = "#E7B800") +
+  ggtitle("200 m Freestyle") +
+  xlab("Age") +
+  ylab("Time (min)") +
+  scale_x_discrete(labels = c("16-21", "22-24", "25-32"))
+
+table(age_ranges)
+
+## test
+
+
+
+
+```
+
+```{r}
+# comparing correlation coefficient across different distances
+
+#1500 m scatterplot and box plots
+# make the same ranges for 1500 m event, will most likely have different ranges for 
+model_1500 <- lm(`R1 (min)`~Age, data = df_list$`1500`)
+correlation_1500 <- cor(df_list$`1500`$Age, df_list$`1500`$`R1 (min)`, method = "spearman")
+correlation_1500
+
+install.packages("minerva")
+library(minerva)
+mic_1500 <- mine(x=df_list$`1500`$Age, y=df_list$`1500`$`R1 (min)`)
+mic_1500 <- mic_1500$MIC
+
+mic_200 <- mine(x=df_list$`200`$Age, y=df_list$`200`$`R1 (min)`)
+mic_200 <- mic_200$MIC
+
+mic_200 <- mine(x=df_list$`200`$Age, y=df_list$`200`$`R1 (min)`)
+mic_200 <- mic_200$MIC
+
+mic_400 <- mine(x=df_list$`400`$Age, y=df_list$`400`$`R1 (min)`)
+mic_400 <- mic_400$MIC
+
+```
+
+```{r}
+# pearson's correlation can only be used for normal distribution
+# treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+plot(`R1 (min)`~Age, data = df_list$`1500`, cex = 0.7, col = "#FC4E07", ylab = "Time (min)", main = "1500 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlatiojn
+text(30, 16, labels = paste("r = ", round(correlation, 2)), cex = 0.7, col = "black")
+#lines(loess.smooth(df_list$`1500`$Age, df_list$`1500`$`R1 (min)`, col="black")) #
+
+# scatter_1500 <- ggplot(df_list$`1500`, aes(x=df_list$`1500`$Age, y=df_list$`1500`$`R1 (min)`)) +
+#  geom_point() +
+#  geom_smooth(method = "spearman") +
+#  geom_text(aes(label = label), hjust = 0, vjust = 0)
+
+
+# ranges <- levels(age_ranges)
+
+ranges_1500 <- cut(df_list$`1500`$Age, breaks = c(13, 19, 24, 32)) # 19, 21, 24
+# table(ranges_1500) # use this cutoff --use these 4 cutoffs
+df_list$`1500`$Age_Range <- ranges_1500
+
+ggplot(df_list$`1500`, aes(x=df_list$`1500`$Age_Range, y = df_list$`1500`$`R1 (min)`)) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean, geom = "point", shape = 18, size = 2.5, color = "#E7B800") +
+  ggtitle("1500 m Freestyle") +
+  xlab("Age") +
+  ylab("Time (min)") +
+  scale_x_discrete(labels = c("14-19", "20-24", "25-32")) 
+
+```
+
+```{r}
+# compute mic (maximal information coefficient)
+```
+
+```{r}
+# make a function for age function
+#REMOVE STUFF FROM BELOW
+graph_Age <- function(df, ggtitle, labels) {
+  model_200 <- lm(`R1 (min)`~Age, data = df_list$`200`)
+  correlation <- cor(df_list$`200`$Age, df_list$`200`$`R1 (min)`, method = "spearman")
+  
+  # pearson's correlation can only be used for normal distribution
+  # treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+  plot(`R1 (min)`~Age, data = df_list$`200`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", main = "200 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+  text(30, 2, labels = paste("r = ", round(correlation, 2)), cex = 0.7, col = "red")
+  lines(loess.smooth(df_list$`200`$Age, df_list$`200`$`R1 (min)`, col="red")) #
+  
+  num_ranges <- 3
+  cut_points <- quantile(df_list$`200`$Age, probs = seq(0, 1, length.out = num_ranges + 1), na.rm = TRUE)
+  age_ranges <- cut(df_list$`200`$Age, breaks = cut_points, include.lowest = TRUE)
+  ranges <- levels(age_ranges)
+  
+  df_list$`200`$Age_Range <- age_ranges # store to a new column called Age Range
+  tail(df_list$`200`)
+  
+  print(tapply(df_list$`200`$`R1 (min)`, df_list$`200`$Age_Range, mean))
+  
+  ggplot(df_list$`200`, aes(x = df_list$`200`$Age_Range, y = df_list$`200`$`R1 (min)`)) + 
+    stat_summary(fun = mean, geom = "bar", color = "black") +
+    ggtitle("200 m Freestyle") +
+    xlab("Age Ranges") +
+    ylab("Average Time (min)") +
+    scale_x_discrete(labels = c("16-21", "21-24", "24-32")) 
+}
+
+# REMOVE THIS BELOW
+
+model_200 <- lm(`R1 (min)`~Age, data = df_list$`200`)
+correlation <- cor(df_list$`200`$Age, df_list$`200`$`R1 (min)`, method = "spearman")
+
+# pearson's correlation can only be used for normal distribution
+# treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+plot(`R1 (min)`~Age, data = df_list$`200`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", main = "200 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_list$`200`$Age, df_list$`200`$`R1 (min)`, col="red")) #
+
+print(tapply(df_list$`200`$`R1 (min)`, df_list$`200`$Age_Range, mean))
+
+ggplot(df_list$`200`, aes(x = df_list$`200`$Age_Range, y = df_list$`200`$`R1 (min)`)) + 
+  stat_summary(fun = mean, geom = "bar", color = "black") +
+  ggtitle("200 m Freestyle") +
+  xlab("Age Ranges") +
+  ylab("Average Time (min)") +
+  scale_x_discrete(labels = c("16-21", "21-24", "24-32")) 
+```
+
+```{r}
+# color points by events
+
+my_cols <- c("#00AFBB", "#E7B800", "#FC4E07")
+pairs(df_200_400_1500[c("R1 (min)", "RT", "Age", "Height", "Weight", "bmi")], col = my_cols[df_200_400_1500$Event], pch = 16, cex = 0.5)
+
+#first row: factors vs R1-- seems like there is no relationship
+
+
+```
+The first row of the scatterplot matrix represents the R1 (min) plotted against all the variables (RT, Age, Height, Weight, and bmi) which is what we're interested in looking at. Blue, yellow, and orange points represent the athletes competing in the 200, 400, and 1500 m events respectively. Looking at the first row, the R1 times vary significantly across the events, scaling the plots too much in the y direction and making it hard for us to see if there's a correlation. Our next steps would be to make line plots for each event so that we can see the correlation better:
+
+```{r}
+# scatterplot matrix to see how the correlations compare with each other
+df_list <- split(df_200_400_1500, df_200_400_1500$Event)
+df_list$`200`
+
+pairs(df_list$`200`[c("R1 (min)", "RT", "Age", "Height", "Weight", "bmi")], col = "#00AFBB", pch = 16, cex = 0.5)
+```
+
+
+```{r}
+#50 meters line correlations for RT vs R1
+
+head(df_50_and_100)
+df_50 <- df_50_and_100[df_50_and_100$Event == 50, ]
+tail(df_50)
+
+model_50 <- lm(R1~RT, data = df_50)
+correlation2 <- cor(df_50$RT, df_50$R1, method = "spearman")
+correlation2
+
+
+# pearson's correlation can only be used for normal distribution
+# treating age as a categorical variable, notice that data is not normally distributed so use spearman or kendall's correlation
+plot(R1~RT, data = df_50, cex = 0.7, col = "#00AFBB", ylab = "Time (sec)", main = "50 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation2, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_50$RT, df_50$R1, col="red")) #
+
+# 200 m line correlations for RT vs R1
+
+
+
+
+```
+```{r}
+
+model_200 <- lm(`R1 (min)`~RT, data = df_list$`200`)
+correlation200 <- cor(df_list$`200`$RT, df_list$`200`$`R1 (min)`, method = "spearman")
+correlation200
+
+plot(`R1 (min)`~RT, data = df_list$`200`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", main = "200 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation200, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_list$`200`$RT, df_list$`200`$`R1 (min)`, col="red")) #
+
+```
+```{r}
+model_1500 <- lm(`R1 (min)`~RT, data = df_list$`1500`)
+correlation1500 <- cor(df_list$`1500`$RT, df_list$`1500`$`R1 (min)`, method = "spearman")
+correlation1500
+
+plot(`R1 (min)`~RT, data = df_list$`1500`, cex = 0.7, col = "#00AFBB", ylab = "Time (min)", xlab = "Reaction Time", main = "1500 m Freestyle") # treating age as a categorical variable, so use spearman or kendall's correlation
+text(30, 2, labels = paste("r = ", round(correlation200, 2)), cex = 0.7, col = "red")
+lines(loess.smooth(df_list$`1500`$RT, df_list$`1500`$`R1 (min)`, col="red")) #
+
+```
+
+```{r}
+pairs(df_list$`400`[c("R1 (min)", "RT", "Age", "Height", "Weight", "bmi")], col = "#FC4E07", pch = 16, cex = 0.5)
+
+# maybe plot linear regression line
+```
+How do the correlations vary across length of event? Just from looking at the scatterplot matrix, there seems to be stronger correlations between R1 and Age and R1 and height for the 1500 m compared to the 200 m
+[bar graph of correlation coefficients, divided by level (the 3 events)]
+```{r}
+
+
+# compute the bmi for each metric, but wouldn't they all be around the same since they are athletes?
+# compute the average bmi of all athletes and use that as comparison
+# sapply to find average height and weight
+sapply(df_200_400_1500[c("R1 (min)", "RT", "Age", "Height", "Weight", "bmi")], mean, simply = FALSE)
+
+mean(df_200_400_1500$bmi) # average bmi of all athletes
+sd(df_200_400_1500$bmi) # 1.56404
+
+tail(df_200_400_1500) # maybe split the df by bmi (high bmi compared to the average and low bmi compared to the average)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
