@@ -4,3 +4,4 @@ With its blend of power, endurance, and precision, the sport of swimming pushes 
 We aim to answer: what kind of relationship do these factors have with race time? Can we rank their overall order of importance, or do they depend on the length of the race? How do they differ among races of different lengths?
 
 full article: https://www.bruinsportsanalytics.com/post/olympic-swimming
+data: https://bit.ly/3RbvKly
